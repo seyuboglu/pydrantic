@@ -95,66 +95,41 @@ def load_binary(path: Path):
         raise ValueError(f"Unknown extension {path.suffix}")
 
 
-class DataclassWrapper:
-    d: dict
-    dataclass_type: type
-    required_val: str
+def import_object(name: str):
+    """Import an object from a string.
+    
+    Parameters:
+    - name (str): The name of the object to import.
+    
+    Returns:
+    - object: The imported object.
+    """
+    import importlib
+    module_name, obj_name = name.rsplit('.', 1)
+    module = importlib.import_module(module_name.replace("olive", "haystacks"))
+    return getattr(module, obj_name)
 
-    def __init__(self, dataclass_type):
-        param_dict = {}
-        for field in fields(dataclass_type):
-            if field.default is not MISSING:
-                param_dict[field.name] = field.default
-            else:
-                param_dict[field.name] = REQUIRED
 
-        self.__dict__["d"] = param_dict
-        self.__dict__["dataclass_type"] = dataclass_type
 
-    def build(self):
-        for k, v in self.d.items():
-            if v == REQUIRED:
-                raise ValueError(
-                    f"Missing required key '{k}' when instantiating dataclass {self.dataclass_type}"
-                )
+def unflatten_dict(d: dict) -> dict:
+    """ 
+    Takes a flat dictionary with '/' separated keys, and returns it as a nested dictionary.
+    
+    Parameters:
+    d (dict): The flat dictionary to be unflattened.
+    
+    Returns:
+    dict: The unflattened, nested dictionary.
+    """
+    result = {}
 
-        config = self.dataclass_type(
-            **self.d,
-        )
-        return config
+    for key, value in d.items():
+        parts = key.split('/')
+        d = result
+        for part in parts[:-1]:
+            if part not in d:
+                d[part] = {}
+            d = d[part]
+        d[parts[-1]] = value
 
-    def __getattr__(self, key: str):
-        try:
-            return self.d[key]
-        except KeyError:
-            raise AttributeError(f"DataclassWrapper has no attribute '{key}'")
-
-    def __getitem__(self, key):
-        return self.d[key]
-
-    def __setitem__(self, key, value):
-        self.d[key] = value
-
-    def __setattr__(self, key, value):
-        if key not in self.d:
-            raise ValueError(f"Trying to assign key that doesn't exist: '{key}'")
-        self.d[key] = value
-
-    def __deepcopy__(self, memodict={}):
-        new_copy = type(self)(
-            self.dataclass_type, deepcopy(self.required_val, memodict)
-        )
-        new_copy.__dict__["d"] = deepcopy(self.d, memodict)
-        return new_copy
-
-    def __repr__(self) -> str:
-        return f"DataclassWrapper({self.d})"
-
-    def __str__(self) -> str:
-        return f"DataclassWrapper({self.d})"
-
-    def __getstate__(self):
-        return {"d": self.d, "dataclass_type": self.dataclass_type}
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
+    return result
