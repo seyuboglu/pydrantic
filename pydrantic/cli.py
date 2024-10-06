@@ -4,8 +4,8 @@ import yaml
 from dataclasses import dataclass
 
 from typing import Optional
-from pydra.config import Config
-import pydra.parser
+from pydrantic.config import BaseConfig, RunConfig
+import pydrantic.parser
 
 
 @dataclass
@@ -48,57 +48,38 @@ def assign(obj, key: str, value, assert_exists: bool = True):
 
 
 def apply_overrides(
-    config: Config,
+    config: BaseConfig,
     args: list[str],
     enforce_required: bool = True,
     finalize: bool = True,
 ) -> bool:
 
-    parsed_args = pydra.parser.parse(args)
+    parsed_args = pydrantic.parser.parse(args)
 
     for command in parsed_args.commands:
-        if isinstance(command, pydra.parser.Assignment):
+        if isinstance(command, pydrantic.parser.Assignment):
             assign(
                 config,
                 command.kv_pair.key,
                 command.kv_pair.value,
                 assert_exists=command.assert_exists,
             )
-        elif isinstance(command, pydra.parser.MethodCall):
+        elif isinstance(command, pydrantic.parser.MethodCall):
             getattr(config, command.method_name)(*command.args, **command.kwargs)
         else:
             raise ValueError(f"Unknown command type {command}")
 
-    if enforce_required:
-        config._enforce_required()
-
-    if finalize:
-        config.finalize()
-
     return parsed_args.show
 
 
-# makes the decorator
-def main(base: type[Config]):
-    def decorator(fn):
+def main(config: RunConfig):
 
-        def wrapped_fn(config: Optional[Config] = None):
-            # allow other scripts to call the wrapped function directly
-            if config is not None:
-                return fn(config)
+    args = sys.argv[1:]
 
-            args = sys.argv[1:]
+    show = apply_overrides(config, args, finalize=True)
 
-            config = base()
+    if show:
+        config.print()
+        return
 
-            show = apply_overrides(config, args, finalize=True)
-
-            if show:
-                print(yaml.dump(config.to_dict(), sort_keys=True))
-                return
-
-            return fn(config)
-
-        return wrapped_fn
-
-    return decorator
+    return config.run()

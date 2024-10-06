@@ -1,6 +1,6 @@
 import unittest
 
-from pydra.parser import (
+from pydrantic.parser import (
     parse,
     ParseResult,
     Assignment,

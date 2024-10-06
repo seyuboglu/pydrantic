@@ -1,15 +1,15 @@
-# Pydra
+# pydrantic
 
 ## What is This?
 
-Pydra is a Python configuration library. The project is heavily inspired by [Hydra](https://hydra.cc/), which provides helpful command-line overrides and allows for a lot of flexiblity. While Hydra uses YAML as a config definition language (which can be unwieldly to work with), Pydra uses Python. The goal of the project is to let you write your configs in the same language that your code is in, while trying to keep the same level of flexibility and ease-of-use.
+pydrantic is a Python configuration library. The project is heavily inspired by [Hydra](https://hydra.cc/), which provides helpful command-line overrides and allows for a lot of flexiblity. While Hydra uses YAML as a config definition language (which can be unwieldly to work with), pydrantic uses Python. The goal of the project is to let you write your configs in the same language that your code is in, while trying to keep the same level of flexibility and ease-of-use.
 
 ## Installation
 
 To install the latest release from PyPI:
 
 ```bash
-pip install pydra-config
+pip install pydrantic-config
 ```
 
 Or to install from source, clone the repo, `cd` into it, and run:
@@ -22,18 +22,18 @@ pip install -e .
 
 ## The Basics
 
-Like Hydra, Pydra has a main decorator that you use to wrap your script's entry point. However, while the Hydra main is parameterized by the path to a YAML file/directory, Pydra uses a config class. Here's an example:
+Like Hydra, pydrantic has a main decorator that you use to wrap your script's entry point. However, while the Hydra main is parameterized by the path to a YAML file/directory, pydrantic uses a config class. Here's an example:
 
 ```python
-import pydra
+import pydrantic
 
-class MyConfig(pydra.Config):
+class MyConfig(pydrantic.Config):
     def __init__(self):
         super().__init__()
         self.foo = 5
         self.bar = None
 
-@pydra.main(MyConfig)
+@pydrantic.main(MyConfig)
 def main(config: MyConfig):
     print(f"foo: {config.foo}")
     print(f"bar: {config.bar}")
@@ -50,7 +50,7 @@ python script.py
 python script.py foo=10 bar=20
 ```
 
-Pydra will parse several different types, such as:
+pydrantic will parse several different types, such as:
 
 ```bash
 python script.py foo=10  # int
@@ -67,12 +67,12 @@ python script.py +baz=1 # adds a new field
 
 ## Method Calling
 
-Since Pydra configs are proper Python objects, Pydra allows you to call methods on them directly from the command line. This is particularly useful for modifying the configuration in more complex ways.
+Since pydrantic configs are proper Python objects, pydrantic allows you to call methods on them directly from the command line. This is particularly useful for modifying the configuration in more complex ways.
 
 ```python
-import pydra
+import pydrantic
 
-class MyConfig(pydra.Config):
+class MyConfig(pydrantic.Config):
     def __init__(self):
         super().__init__()
         self.value = 0
@@ -84,7 +84,7 @@ class MyConfig(pydra.Config):
         self.value = 0
 
 
-@pydra.main(MyConfig)
+@pydrantic.main(MyConfig)
 def main(config: MyConfig):
     print(f"Final value: {config.value}")
 
@@ -113,9 +113,9 @@ This will increment by 3, then increment by 1 (default), set value to 10, and fi
 The `finalize()` method is a special method in your config class that is called after all command-line arguments have been processed. This is useful for performing any final setup, validation, or derived calculations based on the input parameters.
 
 ```python
-import pydra
+import pydrantic
 
-class MyConfig(pydra.Config):
+class MyConfig(pydrantic.Config):
     def __init__(self):
         super().__init__()
         self.x = 1
@@ -124,7 +124,7 @@ class MyConfig(pydra.Config):
     def finalize(self):
         self.sum = self.x + self.y
 
-@pydra.main(MyConfig)
+@pydrantic.main(MyConfig)
 def main(config: MyConfig):
     print(f"x: {config.x}, y: {config.y}, sum: {config.sum}")
 
@@ -137,22 +137,22 @@ if __name__ == "__main__":
 Configs can contain dictionaries or other Config objects.
 
 ```python
-import pydra
+import pydrantic
 
-class InnerConfig(pydra.Config):
+class InnerConfig(pydrantic.Config):
     def __init__(self):
         super().__init__()
         self.x = 1
         self.y = 2
 
-class MyConfig(pydra.Config):
+class MyConfig(pydrantic.Config):
     def __init__(self):
         super().__init__()
         self.inner = InnerConfig()
         self.d = {"a": 3, "b": 4}
 
 
-@pydra.main(MyConfig)
+@pydrantic.main(MyConfig)
 def main(config: MyConfig):
     print(f"Inner x: {config.inner.x}")
     print(f"Inner y: {config.inner.y}")
@@ -179,18 +179,18 @@ python script.py --in inner x=5 y=10 in-- --in d a=100 b=101 in--
 
 ## Required Variables
 
-Pydra supports marking certain configuration variables as required. If a required variable is not set, Pydra will raise an error.
+pydrantic supports marking certain configuration variables as required. If a required variable is not set, pydrantic will raise an error.
 
 ```python
-import pydra
+import pydrantic
 
-class MyConfig(pydra.Config):
+class MyConfig(pydrantic.Config):
     def __init__(self):
         super().__init__()
         self.optional = 5
-        self.required = pydra.REQUIRED
+        self.required = pydrantic.REQUIRED
 
-@pydra.main(MyConfig)
+@pydrantic.main(MyConfig)
 def main(config: MyConfig):
     print(f"Optional: {config.optional}")
     print(f"Required: {config.required}")
@@ -208,18 +208,18 @@ python script.py required=10  # This will work
 
 ## `--list`
 
-Often it can be handy to make a list using space delimiters. Pydra supports this with the `--list` flag.
+Often it can be handy to make a list using space delimiters. pydrantic supports this with the `--list` flag.
 
 ```python
-import pydra
+import pydrantic
 
-class MyConfig(pydra.Config):
+class MyConfig(pydrantic.Config):
     def __init__(self):
         super().__init__()
         self.x = None
         self.y = 1
 
-@pydra.main(MyConfig)
+@pydrantic.main(MyConfig)
 def main(config: MyConfig):
     print(f"x: {config.x}")
     print(f"y: {config.y}")
@@ -246,18 +246,18 @@ python script.py --list x 1 2 3 list-- y=4 --show
 
 ## Aliases
 
-Aliases in Pydra allow you to create alternative names for configuration variables. This can be useful for creating shortcuts or more intuitive command-line interfaces.
+Aliases in pydrantic allow you to create alternative names for configuration variables. This can be useful for creating shortcuts or more intuitive command-line interfaces.
 
 ```python
-import pydra
+import pydrantic
 
-class MyConfig(pydra.Config):
+class MyConfig(pydrantic.Config):
     def __init__(self):
         super().__init__()
         self.very_long_variable_name = 42
-        self.short = pydra.Alias("very_long_variable_name")
+        self.short = pydrantic.Alias("very_long_variable_name")
 
-@pydra.main(MyConfig)
+@pydrantic.main(MyConfig)
 def main(config: MyConfig):
     print(f"Value: {config.very_long_variable_name}")
 
@@ -277,10 +277,10 @@ Both will set the same variable.
 
 ## Working with Data Classes
 
-Pydra also supports incorporating data classes into configs. Use `pydra.DataclassWrapper` to create an object that you can assign into from the CLI. Call `build()` on the object to get the dataclass instance.
+pydrantic also supports incorporating data classes into configs. Use `pydrantic.DataclassWrapper` to create an object that you can assign into from the CLI. Call `build()` on the object to get the dataclass instance.
 
 ```python
-import pydra
+import pydrantic
 from dataclasses import dataclass
 
 @dataclass
@@ -289,13 +289,13 @@ class InnerConfig:
     y: int
     z: int = 11
 
-class MyConfig(pydra.Config):
+class MyConfig(pydrantic.Config):
     def __init__(self):
         super().__init__()
-        self.dc = pydra.DataclassWrapper(InnerConfig)
+        self.dc = pydrantic.DataclassWrapper(InnerConfig)
 
 
-@pydra.main(MyConfig)
+@pydrantic.main(MyConfig)
 def main(config: MyConfig):
     dc = config.dc.build()
     print("dc", dc)
@@ -304,7 +304,7 @@ if __name__ == "__main__":
     main()
 ```
 
-Pydra will prevent you from setting dataclass fields that don't exist, and make sure that all required fields are set.
+pydrantic will prevent you from setting dataclass fields that don't exist, and make sure that all required fields are set.
 
 ```bash
 python script.py dc.x=5 dc.y=10 # good
@@ -318,35 +318,35 @@ python script.py dc.x=5 dc.w=30 # error, w is not a field
 To produce a human-readable serialization of your config, you can use the `to_dict()` method. We also provide a few helper functions to save configs to YAML, pickle, or dill files.
 
 ```python
-import pydra
+import pydrantic
 
-class MyConfig(pydra.Config):
+class MyConfig(pydrantic.Config):
     def __init__(self):
         super().__init__()
         self.x = 5
         self.y = 10
 
-@pydra.main(MyConfig)
+@pydrantic.main(MyConfig)
 def main(config: MyConfig):
     as_dict = config.to_dict()
     print(as_dict)
 
-    pydra.save_yaml(as_dict, "conf.yaml")
-    pydra.save_pickle(as_dict, "conf.pkl")
-    pydra.save_dill(as_dict, "conf.dill")
+    pydrantic.save_yaml(as_dict, "conf.yaml")
+    pydrantic.save_pickle(as_dict, "conf.pkl")
+    pydrantic.save_dill(as_dict, "conf.dill")
 
 if __name__ == "__main__":
     main()
 ```
 
-## Pydra without `main`
+## pydrantic without `main`
 
-You can also apply Pydra overrides programmatically with `apply_overrides`, which takes in a `Config` instance and a list of args.
+You can also apply pydrantic overrides programmatically with `apply_overrides`, which takes in a `Config` instance and a list of args.
 
 ```python
-import pydra
+import pydrantic
 
-class MyConfig(pydra.Config):
+class MyConfig(pydrantic.Config):
     def __init__(self):
         super().__init__()
         self.x = 5
@@ -354,7 +354,7 @@ class MyConfig(pydra.Config):
 
 
 config = MyConfig()
-pydra.apply_overrides(config, ["x=20", "y=30"])
+pydrantic.apply_overrides(config, ["x=20", "y=30"])
 
 print(config.to_dict())
 ```

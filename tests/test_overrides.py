@@ -1,7 +1,7 @@
 import unittest
 from dataclasses import dataclass
 
-from pydra import apply_overrides, Config, Alias, DataclassWrapper, REQUIRED
+from pydrantic import apply_overrides, Config, Alias, DataclassWrapper, REQUIRED
 
 
 class TestConfig(Config):

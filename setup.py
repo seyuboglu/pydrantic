@@ -9,11 +9,11 @@ if __name__ == "__main__":
     long_description = readme_path.read_text()
 
     setup(
-        name="pydra-config",
+        name="pydranticntic",
         version="0.0.2",
-        packages=["pydra"],
-        author="Jordan Juravsky",
-        url="https://github.com/jordan-benjamin/pydra",
+        packages=["pydranticntic"],
+        author="Jordan Juravsky and Sabri Eyuboglu",
+        url="https://github.com/seyuboglu/pydranticntic",
         description="A flexible configuration library in pure Python",
         install_requires=requirements_lines,
         long_description=long_description,

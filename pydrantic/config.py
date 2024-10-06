@@ -1,8 +1,10 @@
 from __future__ import annotations
 import yaml
-from typing import Dict
+from typing import Dict, Optional
+from abc import abstractmethod
 
-from pydra.utils import save_yaml, save_dill, save_pickle, DataclassWrapper, import_object, unflatten_dict, load_dill, load_pickle
+from pydantic import Field
+from pydrantic.utils import save_yaml, save_dill, save_pickle, import_object, unflatten_dict, load_dill, load_pickle
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -105,3 +107,30 @@ class BaseConfig(BaseModel):
             rich.print(self)
         except ImportError:
             print(self)
+
+
+class RunConfig(BaseConfig):
+    run_dir: str
+
+    @abstractmethod
+    def main(self):
+        raise NotImplementedError("This method must be implemented in a subclass.")
+
+
+
+class ObjectConfig(BaseConfig):
+    target: str
+    kwargs: Optional[Dict] = Field(default_factory=dict)
+    _pass_as_config: bool = False
+
+    def instantiate(self, *args, **kwargs):
+        cls = import_object(self.target)
+        if self._pass_as_config:
+            return cls(self, *args, **self.kwargs, **kwargs)
+        # kwargs will overwrite the fields in the config
+        return cls(
+            *args,
+            **self.kwargs,
+            **kwargs,
+            **self.model_dump(exclude={"target", "kwargs"} | set(kwargs.keys())),
+        )

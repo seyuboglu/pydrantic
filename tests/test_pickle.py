@@ -2,7 +2,7 @@ import unittest
 from dataclasses import dataclass
 import pickle
 
-import pydra
+import pydrantic
 
 
 @dataclass
@@ -11,18 +11,18 @@ class MyClass:
     y: str = "hello"
 
 
-class TestConfig(pydra.Config):
+class TestConfig(pydrantic.Config):
     def __init__(self):
         self.foo1 = 1
         self.foo2 = "two"
-        self.inner = pydra.DataclassWrapper(MyClass)
+        self.inner = pydrantic.DataclassWrapper(MyClass)
 
 
 class TestPickle(unittest.TestCase):
     def test_pickle(self):
         conf = TestConfig()
 
-        pydra.apply_overrides(
+        pydrantic.apply_overrides(
             conf,
             [
                 "foo1=10",
