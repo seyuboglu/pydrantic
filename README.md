@@ -7,40 +7,41 @@ pydrantic is a Python configuration library. The project is heavily inspired by 
 ## Installation
 
 To install the latest release from PyPI:
-
 ```bash
-pip install pydrantic-config
-```
-
-Or to install from source, clone the repo, `cd` into it, and run:
-
-```bash
+git clone https://github.com/seyuboglu/pydrantic.git
+cd pydrantic
 pip install -e .
 ```
+
 
 # Usage
 
 ## The Basics
 
-Like Hydra, pydrantic has a main decorator that you use to wrap your script's entry point. However, while the Hydra main is parameterized by the path to a YAML file/directory, pydrantic uses a config class. Here's an example:
+`pydrantic` is a fork of Jordan's awesome `pydra` library. 
+`pydrantic` inherits the same CLI syntax from `pydra`, but uses [Pydantic](https://docs.pydantic.dev/latest/) models for config classes.
+So, in some sense, `pydrantic` is just a more opinionated version of `pydra`. 
+
+The choice of Pydantic models for config classes encourages a strict separation between config and functionality. It also enables a few nice features like safer serialization, built-in type validation, and dependencies between fields in the config.
 
 ```python
-import pydrantic
+from pydrantic import RunConfig
 
-class MyConfig(pydrantic.Config):
-    def __init__(self):
-        super().__init__()
-        self.foo = 5
-        self.bar = None
+class MyConfig(RunConfig):
 
-@pydrantic.main(MyConfig)
-def main(config: MyConfig):
-    print(f"foo: {config.foo}")
-    print(f"bar: {config.bar}")
+    foo: int = 5
+    bar: int = 10
+
+    def run(self):
+        print(f"foo: {self.foo}")
+        print(f"bar: {self.bar}")
 
 if __name__ == "__main__":
-    main()
+    config = MyConfig()
+    main(config)
 ```
+
+
 
 You can run this script with:
 
@@ -67,29 +68,26 @@ python script.py +baz=1 # adds a new field
 
 ## Method Calling
 
-Since pydrantic configs are proper Python objects, pydrantic allows you to call methods on them directly from the command line. This is particularly useful for modifying the configuration in more complex ways.
+Since pydrantic configs are Pydantic models, you can define methods on them and call these methods directly from the command line. This is particularly useful for modifying the configuration in more complex ways.
 
 ```python
-import pydrantic
+from pydrantic import RunConfig
 
-class MyConfig(pydrantic.Config):
-    def __init__(self):
-        super().__init__()
-        self.value = 0
+class MyConfig(RunConfig):
+    value: int = 0
 
-    def increment(self, amount=1):
+    def increment(self, amount: int = 1):
         self.value += amount
 
     def reset(self):
         self.value = 0
 
-
-@pydrantic.main(MyConfig)
-def main(config: MyConfig):
-    print(f"Final value: {config.value}")
+    def run(self):
+        print(f"Final value: {self.value}")
 
 if __name__ == "__main__":
-    main()
+    config = MyConfig()
+    main(config)
 ```
 
 You can call these methods from the command line like this:
@@ -113,54 +111,49 @@ This will increment by 3, then increment by 1 (default), set value to 10, and fi
 The `finalize()` method is a special method in your config class that is called after all command-line arguments have been processed. This is useful for performing any final setup, validation, or derived calculations based on the input parameters.
 
 ```python
-import pydrantic
+from pydrantic import RunConfig
 
-class MyConfig(pydrantic.Config):
-    def __init__(self):
-        super().__init__()
-        self.x = 1
-        self.y = 2
+class MyConfig(RunConfig):
+    x: int = 1
+    y: int = 2
+    sum: int = 0
 
     def finalize(self):
         self.sum = self.x + self.y
 
-@pydrantic.main(MyConfig)
-def main(config: MyConfig):
-    print(f"x: {config.x}, y: {config.y}, sum: {config.sum}")
+    def run(self):
+        print(f"x: {self.x}, y: {self.y}, sum: {self.sum}")
 
 if __name__ == "__main__":
-    main()
+    config = MyConfig()
+    main(config)
 ```
 
 ## Nested Configs
 
-Configs can contain dictionaries or other Config objects.
+Configs can contain nested Pydantic models or dictionaries.
 
 ```python
-import pydrantic
+from pydrantic import RunConfig
+from pydantic import BaseModel
 
-class InnerConfig(pydrantic.Config):
-    def __init__(self):
-        super().__init__()
-        self.x = 1
-        self.y = 2
+class InnerConfig(BaseModel):
+    x: int = 1
+    y: int = 2
 
-class MyConfig(pydrantic.Config):
-    def __init__(self):
-        super().__init__()
-        self.inner = InnerConfig()
-        self.d = {"a": 3, "b": 4}
+class MyConfig(RunConfig):
+    inner: InnerConfig = InnerConfig()
+    d: dict = {"a": 3, "b": 4}
 
-
-@pydrantic.main(MyConfig)
-def main(config: MyConfig):
-    print(f"Inner x: {config.inner.x}")
-    print(f"Inner y: {config.inner.y}")
-    print(f"Dict a: {config.d['a']}")
-    print(f"Dict b: {config.d['b']}")
+    def run(self):
+        print(f"Inner x: {self.inner.x}")
+        print(f"Inner y: {self.inner.y}")
+        print(f"Dict a: {self.d['a']}")
+        print(f"Dict b: {self.d['b']}")
 
 if __name__ == "__main__":
-    main()
+    config = MyConfig()
+    main(config)
 ```
 
 You can access nested fields from the command line using dots:

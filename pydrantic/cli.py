@@ -8,6 +8,24 @@ from pydrantic.config import BaseConfig, RunConfig
 import pydrantic.parser
 
 
+
+
+def main(config: RunConfig):
+    """
+    Run a pydrantic config. 
+    """
+
+    args = sys.argv[1:]
+
+    show = apply_overrides(config, args, finalize=True)
+
+    if show:
+        config.print()
+        return
+
+    return config.run()
+
+
 @dataclass
 class Alias:
     name: str
@@ -70,16 +88,3 @@ def apply_overrides(
             raise ValueError(f"Unknown command type {command}")
 
     return parsed_args.show
-
-
-def main(config: RunConfig):
-
-    args = sys.argv[1:]
-
-    show = apply_overrides(config, args, finalize=True)
-
-    if show:
-        config.print()
-        return
-
-    return config.run()
