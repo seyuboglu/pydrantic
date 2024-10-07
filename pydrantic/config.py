@@ -1,16 +1,21 @@
 from __future__ import annotations
 import yaml
-from typing import Dict, Optional
+from typing import Dict, Optional, Type
 from abc import abstractmethod
 
 from pydantic import Field
 from pydrantic.utils import save_yaml, save_dill, save_pickle, import_object, unflatten_dict, load_dill, load_pickle
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class BaseConfig(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        strict=True,
+    )
+    
 
     def get(self, key, default=None):
         return getattr(self, key, default)
@@ -27,6 +32,11 @@ class BaseConfig(BaseModel):
             for k, v in obj:
                 data[k] = self._to_dict(v)
             return data
+        elif isinstance(obj, type):
+            return {
+                "_is_type": True,
+                "name": f"{obj.__module__}.{obj.__name__}",
+            }
         elif isinstance(obj, list):
             return [self._to_dict(i) for i in obj]
         elif isinstance(obj, dict):
@@ -42,10 +52,18 @@ class BaseConfig(BaseModel):
 
         def _is_config(v):
             return isinstance(v, dict) and "_config_type" in v
+    
+        def _is_type(v):
+            return isinstance(v, dict) and "_is_type" in v
+        
         result = {}
         for k, v in data.items():
+            if k == "_config_type":
+                continue
             if _is_config(v):
                 result[k] = cls.from_dict(v)
+            elif _is_type(v):
+                result[k] = import_object(v["name"])
             elif isinstance(v, list):
                 result[k] = [cls.from_dict(i) if _is_config(i) else i for i in v]
             elif isinstance(v, dict):
@@ -119,12 +137,12 @@ class RunConfig(BaseConfig):
 
 
 class ObjectConfig(BaseConfig):
-    target: str
+    target: Type
     kwargs: Optional[Dict] = Field(default_factory=dict)
     _pass_as_config: bool = False
 
     def instantiate(self, *args, **kwargs):
-        cls = import_object(self.target)
+        cls = self.target
         if self._pass_as_config:
             return cls(self, *args, **self.kwargs, **kwargs)
         # kwargs will overwrite the fields in the config
@@ -134,3 +152,4 @@ class ObjectConfig(BaseConfig):
             **kwargs,
             **self.model_dump(exclude={"target", "kwargs"} | set(kwargs.keys())),
         )
+
