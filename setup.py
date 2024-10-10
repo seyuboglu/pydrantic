@@ -9,11 +9,11 @@ if __name__ == "__main__":
     long_description = readme_path.read_text()
 
     setup(
-        name="pydranticntic",
+        name="pydrantic",
         version="0.0.2",
-        packages=["pydranticntic"],
+        packages=["pydrantic"],
         author="Jordan Juravsky and Sabri Eyuboglu",
-        url="https://github.com/seyuboglu/pydranticntic",
+        url="https://github.com/seyuboglu/pydrantic",
         description="A flexible configuration library in pure Python",
         install_requires=requirements_lines,
         long_description=long_description,
