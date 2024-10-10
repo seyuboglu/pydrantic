@@ -7,7 +7,7 @@ from pydantic import Field
 from pydrantic.utils import save_yaml, save_dill, save_pickle, import_object, unflatten_dict, load_dill, load_pickle
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, with_config
 
 
 class BaseConfig(BaseModel):
@@ -46,7 +46,7 @@ class BaseConfig(BaseModel):
     
 
     @classmethod
-    def from_dict(cls, data: Dict):
+    def from_dict(cls, data: Dict, strict: bool = True):
         if "_config_type" in data:
             cls = import_object(data["_config_type"])
 
@@ -61,16 +61,24 @@ class BaseConfig(BaseModel):
             if k == "_config_type":
                 continue
             if _is_config(v):
-                result[k] = cls.from_dict(v)
+                result[k] = cls.from_dict(v, strict=strict)
             elif _is_type(v):
                 result[k] = import_object(v["name"])
             elif isinstance(v, list):
-                result[k] = [cls.from_dict(i) if _is_config(i) else i for i in v]
+                result[k] = [cls.from_dict(i, strict=strict) if _is_config(i) else i for i in v]
             elif isinstance(v, dict):
-                result[k] = {k: cls.from_dict(v) if _is_config(v) else v for k, v in v.items()}
+                result[k] = {k: cls.from_dict(v, strict=strict) if _is_config(v) else v for k, v in v.items()}
             else:
                 result[k] = v
-        return cls(**result)
+
+        if any(k not in cls.model_fields for k in result.keys()):
+            if strict:
+                raise ValueError(f"Missing fields: {', '.join(k for k in result.keys() if k not in cls.model_fields)}")
+            else:
+                print(f"Missing fields: {', '.join(k for k in result.keys() if k not in cls.model_fields)}")
+                result = {k: v for k, v in result.items() if k in cls.model_fields}
+
+        return (cls)(**result)
     
     def to_yaml(self, path: str):
         with open(path, "w") as f:
@@ -97,7 +105,7 @@ class BaseConfig(BaseModel):
         return cls.from_dict(load_pickle(path))
         
     @classmethod
-    def from_wandb(cls, run_id: str):
+    def from_wandb(cls, run_id: str, strict: bool = True):
         """
         Load a config from a wandb run ID.
     
@@ -117,7 +125,7 @@ class BaseConfig(BaseModel):
             # eventually this can be removed when all configs are updated
             config["callbacks"] = []
 
-        return cls.from_dict(config)
+        return cls.from_dict(config, strict=strict)
 
     def print(self):
         try:
@@ -128,11 +136,10 @@ class BaseConfig(BaseModel):
 
 
 class RunConfig(BaseConfig):
-    run_dir: str
 
     @abstractmethod
-    def main(self):
-        raise NotImplementedError("This method must be implemented in a subclass.")
+    def run(self):
+        raise NotImplementedError("`run` must be implemented in subclasses of `RunConfig`.")
 
 
 
