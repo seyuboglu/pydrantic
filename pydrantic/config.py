@@ -14,6 +14,7 @@ class BaseConfig(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
         strict=True,
+        validate_default=True,
     )
     
 
