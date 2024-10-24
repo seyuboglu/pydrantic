@@ -137,6 +137,11 @@ class BaseConfig(BaseModel):
 
 
 class RunConfig(BaseConfig):
+    run_dir: Optional[str] = None
+    output_dir: Optional[str] = None
+    run_id: Optional[str] = None
+    launch_id: Optional[str] = None
+    script_id: Optional[str] = None
 
     @abstractmethod
     def run(self):
