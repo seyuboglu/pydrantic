@@ -25,9 +25,9 @@ So, in some sense, `pydrantic` is just a more opinionated version of `pydra`.
 The choice of Pydantic models for config classes encourages a strict separation between config and functionality. It also enables a few nice features like safer serialization, built-in type validation, and dependencies between fields in the config.
 
 ```python
-from pydrantic import RunConfig
+import pydrantic
 
-class MyConfig(RunConfig):
+class MyConfig(pydrantic.RunConfig):
 
     foo: int = 5
     bar: int = 10
@@ -38,7 +38,7 @@ class MyConfig(RunConfig):
 
 if __name__ == "__main__":
     config = MyConfig()
-    main(config)
+    pydrantic.main(config)
 ```
 
 
@@ -48,86 +48,9 @@ You can run this script with:
 ```bash
 python script.py
 
-python script.py foo=10 bar=20
+python script.py -u foo=10
 ```
 
-pydrantic will parse several different types, such as:
-
-```bash
-python script.py foo=10  # int
-python script.py foo=3.14  # float
-python script.py foo=hello  # str
-python script.py foo=True  # bool (also accepts "T")
-python script.py foo=None  # None
-python script.py 'foo=[1,2,3]'  # list of ints
-python script.py 'foo=(1+3 * (2 ** 3))' # arbitrary python expression (uses eval())
-
-python script.py baz=1 # will crash, field does not exist
-python script.py +baz=1 # adds a new field
-```
-
-## Method Calling
-
-Since pydrantic configs are Pydantic models, you can define methods on them and call these methods directly from the command line. This is particularly useful for modifying the configuration in more complex ways.
-
-```python
-from pydrantic import RunConfig
-
-class MyConfig(RunConfig):
-    value: int = 0
-
-    def increment(self, amount: int = 1):
-        self.value += amount
-
-    def reset(self):
-        self.value = 0
-
-    def run(self):
-        print(f"Final value: {self.value}")
-
-if __name__ == "__main__":
-    config = MyConfig()
-    main(config)
-```
-
-You can call these methods from the command line like this:
-
-```bash
-python script.py .increment  # Calls increment() with default argument
-python script.py '.increment(amount=5)'  # Calls increment(amount=5)
-python script.py .reset  # Calls reset()
-```
-
-You can also chain multiple method calls and assignments:
-
-```bash
-python script.py '.increment(amount=3)' .increment value=10 .reset
-```
-
-This will increment by 3, then increment by 1 (default), set value to 10, and finally reset to 0.
-
-## `finalize()`
-
-The `finalize()` method is a special method in your config class that is called after all command-line arguments have been processed. This is useful for performing any final setup, validation, or derived calculations based on the input parameters.
-
-```python
-from pydrantic import RunConfig
-
-class MyConfig(RunConfig):
-    x: int = 1
-    y: int = 2
-    sum: int = 0
-
-    def finalize(self):
-        self.sum = self.x + self.y
-
-    def run(self):
-        print(f"x: {self.x}, y: {self.y}, sum: {self.sum}")
-
-if __name__ == "__main__":
-    config = MyConfig()
-    main(config)
-```
 
 ## Nested Configs
 
@@ -143,13 +66,10 @@ class InnerConfig(BaseModel):
 
 class MyConfig(RunConfig):
     inner: InnerConfig = InnerConfig()
-    d: dict = {"a": 3, "b": 4}
 
     def run(self):
         print(f"Inner x: {self.inner.x}")
         print(f"Inner y: {self.inner.y}")
-        print(f"Dict a: {self.d['a']}")
-        print(f"Dict b: {self.d['b']}")
 
 if __name__ == "__main__":
     config = MyConfig()
@@ -159,7 +79,7 @@ if __name__ == "__main__":
 You can access nested fields from the command line using dots:
 
 ```bash
-python script.py inner.x=5 d.a=10
+python script.py -u inner.x=5
 ```
 
 ## `--in`

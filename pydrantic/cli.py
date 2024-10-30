@@ -127,6 +127,7 @@ def main(
                     config.print()
                     print(error)
                 else: 
+                    print(f"Run {config.run_id} (status: completed) (run_dir: {config.run_dir})")
                     results.append((output, config, error))
                     
             print(f"Completed: {completed} ({completed / total:0.1%} -- {failed} failed) | Total: {total}")
