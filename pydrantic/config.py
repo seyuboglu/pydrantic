@@ -4,7 +4,7 @@ from typing import Dict, Optional, Type
 from abc import abstractmethod
 
 from pydantic import Field
-from pydrantic.utils import save_yaml, save_dill, save_pickle, import_object, unflatten_dict, load_dill, load_pickle
+from pydrantic.utils import save_yaml, save_dill, save_pickle, import_object, unflatten_dict, flatten_dict, load_dill, load_pickle
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, with_config
@@ -86,24 +86,24 @@ class BaseConfig(BaseModel):
             yaml.dump(self.to_dict(), f)
 
     @classmethod
-    def from_yaml(cls, path: str):
+    def from_yaml(cls, path: str, strict: bool = True):
         with open(path, "r") as f:
             data = yaml.load(f, Loader=yaml.CLoader)
-        return cls.from_dict(data)
+        return cls.from_dict(data, strict=strict)
 
     def to_dill(self, path: str):
         save_dill(self.to_dict(), path)
     
     @classmethod
-    def from_dill(cls, path: str):
-        return cls.from_dict(load_dill(path))
+    def from_dill(cls, path: str, strict: bool = True):
+        return cls.from_dict(load_dill(path), strict=strict)
     
     def to_pickle(self, path: str):
         save_pickle(self.to_dict(), path)
     
     @classmethod
-    def from_pickle(cls, path: str):
-        return cls.from_dict(load_pickle(path))
+    def from_pickle(cls, path: str, strict: bool = True):
+        return cls.from_dict(load_pickle(path), strict=strict)
         
     @classmethod
     def from_wandb(cls, run_id: str, strict: bool = True):
@@ -134,6 +134,10 @@ class BaseConfig(BaseModel):
             rich.print(self)
         except ImportError:
             print(self)
+
+    def flatten(self):
+        return flatten_dict(self.to_dict())
+        
 
 
 class RunConfig(BaseConfig):
@@ -166,3 +170,34 @@ class ObjectConfig(BaseConfig):
             **self.model_dump(exclude={"target", "kwargs"} | set(kwargs.keys())),
         )
 
+
+def get_unique_ids(
+    configs: List[BaseConfig], 
+    exclude: List[str] = [],
+    sep: str = "."
+) -> List[str]:
+    flattened_configs = [flatten_dict(config.to_dict(), sep=sep) for config in configs]
+
+    differing_keys = set()
+    all_keys = set([key for config in flattened_configs for key in config.keys()])
+    for key in all_keys:
+        if key in exclude:
+            continue
+        values = set()
+        for config in flattened_configs:
+            if key in config:
+                values.add(config[key])
+        if len(values) > 1:
+            differing_keys.add(key)
+
+    unique_ids = []
+    for config in flattened_configs:
+        id_parts = [
+            f"{key.split('.')[-1]}={config[key]}" 
+            for key in differing_keys 
+            if key in config
+        ]
+        unique_id = '-'.join(id_parts)
+        unique_ids.append(unique_id)
+
+    return unique_ids

@@ -111,7 +111,7 @@ def import_object(name: str):
 
 
 
-def unflatten_dict(d: dict) -> dict:
+def unflatten_dict(d: dict, sep: str = "/") -> dict:
     """ 
     Takes a flat dictionary with '/' separated keys, and returns it as a nested dictionary.
     
@@ -124,7 +124,7 @@ def unflatten_dict(d: dict) -> dict:
     result = {}
 
     for key, value in d.items():
-        parts = key.split('/')
+        parts = key.split(sep)
         d = result
         for part in parts[:-1]:
             if part not in d:
@@ -133,3 +133,36 @@ def unflatten_dict(d: dict) -> dict:
         d[parts[-1]] = value
 
     return result
+
+
+def flatten_dict(d: dict, parent_key: str = '', sep: str = '/') -> dict:
+    """
+    Takes a nested dictionary and returns it as a flat dictionary with '/' separated keys.
+    Supports lists by appending the index to the key path.
+    
+    Parameters:
+    d (dict): The nested dictionary to be flattened.
+    parent_key (str): The base key to use for the flattened keys.
+    sep (str): The separator to use between keys.
+    
+    Returns:
+    dict: The flattened dictionary.
+    """
+    items = {}
+    if isinstance(d, dict):
+        for k, v in d.items():
+            new_key = f"{parent_key}{sep}{k}" if parent_key else k
+            if isinstance(v, dict):
+                items.update(flatten_dict(v, new_key, sep=sep))
+            elif isinstance(v, list):
+                for i, item in enumerate(v):
+                    items.update(flatten_dict(item, f"{new_key}{sep}{i}", sep=sep))
+            else:
+                items[new_key] = v
+    elif isinstance(d, list):
+        for i, item in enumerate(d):
+            items.update(flatten_dict(item, f"{parent_key}{sep}{i}", sep=sep))
+    else:
+        items[parent_key] = d
+    return items
+
