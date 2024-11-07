@@ -44,10 +44,13 @@ def _update_config(config: BaseConfig, updates: List[str]) -> BaseConfig:
                 parent = child
                 child = next_node
                 relation = key
+
+        # NOTE: we use strict=False so that it coerces the strings from the cli into the 
+        # correct types
         if parent is None:
-            config = child.model_validate({**child.to_dict(), key: value})
+            config = child.from_dict({**child.to_dict(), key: value}, strict=False)
         else:
-            setattr(parent, relation, child.model_validate({**child.to_dict(), key: value}))
+            setattr(parent, relation, child.from_dict({**child.to_dict(), key: value}, strict=False))
     return config
 
 
@@ -73,6 +76,7 @@ def main(
     time_tag = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
     for idx, config in enumerate(configs):
         config: RunConfig = _update_config(config, updates)
+        config.print()
         configs[idx] = config
         if config.script_id is None:
             import sys

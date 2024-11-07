@@ -1,6 +1,6 @@
 from __future__ import annotations
 import yaml
-from typing import Dict, Optional, Type
+from typing import Dict, List, Optional, Type
 from abc import abstractmethod
 
 from pydantic import Field
@@ -79,7 +79,7 @@ class BaseConfig(BaseModel):
                 print(f"Missing fields: {', '.join(k for k in result.keys() if k not in cls.model_fields)}")
                 result = {k: v for k, v in result.items() if k in cls.model_fields}
 
-        return (cls)(**result)
+        return cls.model_validate(result, strict=strict)
     
     def to_yaml(self, path: str):
         with open(path, "w") as f:
@@ -144,7 +144,11 @@ class RunConfig(BaseConfig):
     run_dir: Optional[str] = None
     output_dir: Optional[str] = None
     run_id: Optional[str] = None
+
+    # unique id for the 
     launch_id: Optional[str] = None
+
+    # a
     script_id: Optional[str] = None
 
     @abstractmethod
