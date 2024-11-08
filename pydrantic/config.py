@@ -3,11 +3,13 @@ import yaml
 from typing import Dict, List, Optional, Type
 from abc import abstractmethod
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydrantic.utils import save_yaml, save_dill, save_pickle, import_object, unflatten_dict, flatten_dict, load_dill, load_pickle
+from pydrantic.variables import BaseVariable
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, with_config
+
 
 
 class BaseConfig(BaseModel):
@@ -16,6 +18,13 @@ class BaseConfig(BaseModel):
         strict=True,
         validate_default=True,
     )
+
+    @model_validator(mode="before")
+    def resolve_variables(cls, data: dict[str, Any]) -> dict[str, Any]:
+        for k, v in data.items():
+            if isinstance(v, BaseVariable):
+                data[k] = v.resolve(data)
+        return data
     
 
     def get(self, key, default=None):

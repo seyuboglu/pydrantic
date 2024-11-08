@@ -16,7 +16,6 @@ class FormatStr(Annotated[str, Field(validate_default=True)]):
     def validate(cls, v: Any, info: ValidationInfo):
         if not isinstance(v, str):
             raise TypeError('string required')
-        
         try:
             return v.format(**info.data)
         except KeyError as e:
