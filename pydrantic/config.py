@@ -1,6 +1,6 @@
 from __future__ import annotations
 import yaml
-from typing import Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 from abc import abstractmethod
 
 from pydantic import Field, model_validator
@@ -18,22 +18,27 @@ class BaseConfig(BaseModel):
         strict=True,
         validate_default=True,
     )
-    # _original_data: Optional[Dict] = None
+    _variables: Optional[Dict[str, BaseVariable]] = None
 
-    @model_validator(mode="before")
-    def resolve_variables(cls, data: dict[str, Any]) -> dict[str, Any]:
-        # data["_original_data"] = data
-        for k, v in data.items():
+    @model_validator(mode="wrap")
+    def resolve_variables(cls, values: dict[str, Any], handler) -> dict[str, Any]:
+        if isinstance(values, BaseConfig):
+            return handler(values)
+        
+        variables = {}
+        for k, v in values.items():
             if isinstance(v, BaseVariable):
-                data[k] = v.resolve(data)
-        return data
+                values[k] = v.resolve(values)
+                variables[k] = v
+        config: BaseConfig = handler(values)
+        config._variables = variables
+        return config
     
     def get(self, key, default=None):
         return getattr(self, key, default)
 
     def to_dict(self):
         return self._to_dict(self)
-    
     
     def _to_dict(self, obj: any):
         if isinstance(obj, BaseConfig):

@@ -180,3 +180,17 @@ def test_format_string_variable_none_values():
     }
     result = variable.resolve(data)
     assert result == "Maybe: None"
+
+
+def test_format_string_variable_in_config():
+    from pydrantic.config import BaseConfig
+    class Config(BaseConfig):
+        foo: int = 1
+        bar: int = 2
+        name: str = "Hello"
+
+    config = Config(
+        foo=3, 
+        name=FormatStringVariable("Hello, {foo}!")
+    )
+    assert config.name == "Hello, 3!"

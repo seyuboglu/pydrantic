@@ -38,19 +38,27 @@ def _update_config(config: BaseConfig, updates: List[str]) -> BaseConfig:
         arg_path, value = update.split("=")
 
         child, parent, relation = config, None, None
+        ancestors = []
         for key in arg_path.split("."):
             next_node = getattr(child, key)
             if isinstance(next_node, BaseConfig):
                 parent = child
                 child = next_node
-                relation = key
+                ancestors.append((parent, key))
 
         # NOTE: we use strict=False so that it coerces the strings from the cli into the 
         # correct types
-        if parent is None:
-            config = child.from_dict({**child.to_dict(), key: value}, strict=False)
-        else:
-            setattr(parent, relation, child.from_dict({**child.to_dict(), key: value}, strict=False))
+        data = {**child.model_dump(), key: value}
+        if child._variables is not None:
+            data.update(child._variables)
+        config = child.model_validate(data, strict=False)
+    
+        for (parent, key) in reversed(ancestors):
+            data = {**parent.model_dump(), key: config}
+            if parent._variables is not None:
+                data.update(parent._variables)
+            config = parent.model_validate(data, strict=False)
+
     return config
 
 
