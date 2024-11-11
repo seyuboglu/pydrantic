@@ -18,9 +18,11 @@ class BaseConfig(BaseModel):
         strict=True,
         validate_default=True,
     )
+    # _original_data: Optional[Dict] = None
 
     @model_validator(mode="before")
     def resolve_variables(cls, data: dict[str, Any]) -> dict[str, Any]:
+        # data["_original_data"] = data
         for k, v in data.items():
             if isinstance(v, BaseVariable):
                 data[k] = v.resolve(data)
@@ -167,11 +169,13 @@ class RunConfig(BaseConfig):
 
 
 class ObjectConfig(BaseConfig):
-    target: Type
+    target: Union[Type, str]
     kwargs: Optional[Dict] = Field(default_factory=dict)
     _pass_as_config: bool = False
 
     def instantiate(self, *args, **kwargs):
+        if isinstance(self.target, str):
+            self.target = import_object(self.target)
         cls = self.target
         if self._pass_as_config:
             return cls(self, *args, **self.kwargs, **kwargs)
