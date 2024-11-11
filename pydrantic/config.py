@@ -1,6 +1,6 @@
 from __future__ import annotations
 import yaml
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Optional, Type, Union
 from abc import abstractmethod
 
 from pydantic import Field, model_validator
@@ -28,7 +28,6 @@ class BaseConfig(BaseModel):
                 data[k] = v.resolve(data)
         return data
     
-
     def get(self, key, default=None):
         return getattr(self, key, default)
 
