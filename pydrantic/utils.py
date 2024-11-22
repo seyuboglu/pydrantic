@@ -126,10 +126,18 @@ def unflatten_dict(d: dict, sep: str = "/") -> dict:
     for key, value in d.items():
         parts = key.split(sep)
         d = result
+
         for part in parts[:-1]:
             if part not in d:
                 d[part] = {}
             d = d[part]
+    
+        if not isinstance(d, dict):
+            # This shouldn't happen for well-formed flattened configs, but including
+            # it to deal with an edge case
+            print(f"Warning in unflatten_dict: {key} is incompatible with other keys.")
+            continue
+
         d[parts[-1]] = value
 
     return result

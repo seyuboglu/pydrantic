@@ -48,13 +48,15 @@ def _update_config(config: BaseConfig, updates: List[str]) -> BaseConfig:
 
         # NOTE: we use strict=False so that it coerces the strings from the cli into the 
         # correct types
-        data = {**child.model_dump(), key: value}
+        # we also are careful not to use model_dump() because it will also serialize
+        # the nested configs
+        data = {**{k: getattr(child, k) for k in child.model_fields}, key: value}
         if child._variables is not None:
             data.update(child._variables)
         config = child.model_validate(data, strict=False)
     
         for (parent, key) in reversed(ancestors):
-            data = {**parent.model_dump(), key: config}
+            data = {** {k: getattr(parent, k) for k in parent.model_fields}, key: config}
             if parent._variables is not None:
                 data.update(parent._variables)
             config = parent.model_validate(data, strict=False)
@@ -84,7 +86,6 @@ def main(
     time_tag = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
     for idx, config in enumerate(configs):
         config: RunConfig = _update_config(config, updates)
-        config.print()
         configs[idx] = config
         if config.script_id is None:
             import sys

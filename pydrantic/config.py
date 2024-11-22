@@ -93,7 +93,6 @@ class BaseConfig(BaseModel):
             else:
                 print(f"Missing fields: {', '.join(k for k in result.keys() if k not in cls.model_fields)}")
                 result = {k: v for k, v in result.items() if k in cls.model_fields}
-
         return cls.model_validate(result, strict=strict)
     
     def to_yaml(self, path: str):
@@ -135,7 +134,7 @@ class BaseConfig(BaseModel):
         run = api.run(run_id)
         config = unflatten_dict(run.config)
         
-        if "callbacks" in config and isinstance(config["callbacks"][0], str):
+        if "callbacks" in config and len(config["callbacks"]) > 0 and isinstance(config["callbacks"][0], str):
             # SE (04/01): this is a hack to deal with a bug in an old version of 
             # to_dict that didn't work with lists
             # eventually this can be removed when all configs are updated
@@ -179,12 +178,13 @@ class ObjectConfig(BaseConfig):
 
     def instantiate(self, *args, **kwargs):
         if isinstance(self.target, str):
-            self.target = import_object(self.target)
-        cls = self.target
+            target = import_object(self.target)
+        else:
+            target = self.target
         if self._pass_as_config:
-            return cls(self, *args, **self.kwargs, **kwargs)
+            return target(self, *args, **self.kwargs, **kwargs)
         # kwargs will overwrite the fields in the config
-        return cls(
+        return target(
             *args,
             **self.kwargs,
             **kwargs,
