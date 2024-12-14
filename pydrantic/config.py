@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Type, Union
 from abc import abstractmethod
 
 from pydantic import Field, model_validator
-from pydrantic.utils import save_yaml, save_dill, save_pickle, import_object, unflatten_dict, flatten_dict, load_dill, load_pickle
+from pydrantic.utils import type_from_dict, save_yaml, save_dill, save_pickle, import_object, type_to_dict, unflatten_dict, flatten_dict, load_dill, load_pickle
 from pydrantic.variables import BaseVariable
 from pathlib import Path
 
@@ -43,16 +43,13 @@ class BaseConfig(BaseModel):
     def _to_dict(self, obj: any):
         if isinstance(obj, BaseConfig):
             data = {
-                "_config_type": obj.__class__.__module__ + '.' + obj.__class__.__name__
+                "_config_type": type_to_dict(type(obj))
             }
             for k, v in obj:
                 data[k] = self._to_dict(v)
             return data
         elif isinstance(obj, type):
-            return {
-                "_is_type": True,
-                "name": f"{obj.__module__}.{obj.__name__}",
-            }
+            return type_to_dict(obj)
         elif isinstance(obj, list):
             return [self._to_dict(i) for i in obj]
         elif isinstance(obj, dict):
@@ -64,7 +61,11 @@ class BaseConfig(BaseModel):
     @classmethod
     def from_dict(cls, data: Dict, strict: bool = True):
         if "_config_type" in data:
-            cls = import_object(data["_config_type"])
+            if isinstance(data["_config_type"], dict):
+                cls = type_from_dict(data["_config_type"])
+            else:
+                # SE (12/14): Backwards compatibility for old configs before support for inner classes
+                cls = import_object(data["_config_type"])
 
         def _is_config(v):
             return isinstance(v, dict) and "_config_type" in v
@@ -79,7 +80,7 @@ class BaseConfig(BaseModel):
             if _is_config(v):
                 result[k] = cls.from_dict(v, strict=strict)
             elif _is_type(v):
-                result[k] = import_object(v["name"])
+                result[k] = type_from_dict(v)
             elif isinstance(v, list):
                 result[k] = [cls.from_dict(i, strict=strict) if _is_config(i) else i for i in v]
             elif isinstance(v, dict):

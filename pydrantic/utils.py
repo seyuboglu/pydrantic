@@ -1,3 +1,4 @@
+import importlib
 from pathlib import Path
 import yaml
 import dill
@@ -108,6 +109,32 @@ def import_object(name: str):
     module_name, obj_name = name.rsplit('.', 1)
     module = importlib.import_module(module_name.replace("olive", "haystacks"))
     return getattr(module, obj_name)
+
+def type_to_dict(cls): 
+    return {
+        "_is_type": True,
+        "_module": cls.__module__,
+        "_qualname": cls.__qualname__,
+    }
+
+def type_from_dict(d: dict):
+    assert "_is_type" in d, "Invalid class dictionary"
+    if "_module" in d and "_qualname" in d:
+        module = importlib.import_module(d["_module"].replace("olive", "haystacks"))
+        if "." in d["_qualname"]:
+            # support for inner classes
+            obj = module    
+            for part in d["_qualname"].split("."):
+                obj = getattr(obj, part)
+            return obj
+        else:
+            return getattr(module, d["_qualname"])
+    elif "_name" in d:
+        # SE (12/14): Backwards compatibility for old configs before support for inner classes
+        return import_object(d["_name"])
+    else:
+        raise ValueError(f"Invalid class dictionary: {d}")
+        
 
 
 
