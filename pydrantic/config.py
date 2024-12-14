@@ -8,7 +8,7 @@ from pydrantic.utils import save_yaml, save_dill, save_pickle, import_object, un
 from pydrantic.variables import BaseVariable
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, with_config
+from pydantic import BaseModel, ConfigDict, with_config, field_validator
 
 
 
@@ -172,9 +172,22 @@ class RunConfig(BaseConfig):
 
 
 class ObjectConfig(BaseConfig):
-    target: Union[Type, str]
+    target: Union[Type, str, None] = None
     kwargs: Optional[Dict] = Field(default_factory=dict)
     _pass_as_config: bool = False
+
+    @field_validator("target", mode="before")
+    def infer_target(cls, v, values):
+        if v is None:
+            parts = cls.__qualname__.split(".")
+            if len(parts) < 2:
+                raise ValueError(f"Cannot infer target for {cls.__qualname__}")
+            elif len(parts) == 2:
+                v = import_object(cls.__module__ + "." + parts[0])
+            else:
+                raise ValueError(f"Cannot infer target for {cls.__qualname__}")
+        return v
+     
 
     def instantiate(self, *args, **kwargs):
         if isinstance(self.target, str):
