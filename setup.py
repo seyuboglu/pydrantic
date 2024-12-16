@@ -2,11 +2,14 @@ from setuptools import setup
 from pathlib import Path
 
 if __name__ == "__main__":
-    requirements_path = Path(__file__).parent / "requirements.txt"
-    requirements_lines = requirements_path.read_text().strip().splitlines()
-
     readme_path = Path(__file__).parent / "README.md"
     long_description = readme_path.read_text()
+
+    REQUIREMENTS = [
+        "pyyaml>=6.0,<7",
+        "dill>=0.3.7,<0.4",
+        "pydantic>=2.9.2",
+    ]
 
     setup(
         name="pydrantic",
@@ -15,7 +18,7 @@ if __name__ == "__main__":
         author="Jordan Juravsky and Sabri Eyuboglu",
         url="https://github.com/seyuboglu/pydrantic",
         description="A flexible configuration library in pure Python",
-        install_requires=requirements_lines,
+        install_requires=REQUIREMENTS,
         long_description=long_description,
         long_description_content_type="text/markdown",
         python_requires=">=3.9",
