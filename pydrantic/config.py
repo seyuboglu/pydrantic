@@ -18,6 +18,7 @@ class BaseConfig(BaseModel):
         extra="forbid",
         strict=True,
         validate_default=True,
+        protected_namespaces=('model_validate', 'model_dump',)
     )
     _variables: Optional[Dict[str, BaseVariable]] = None
 
