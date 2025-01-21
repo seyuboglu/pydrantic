@@ -80,6 +80,8 @@ def main(
             # use a unique run_id if not provided
             from uuid import uuid4
             config.run_id = str(uuid4())
+        else:
+            config.run_id = f"{config.run_id}-{idx}"
 
         config.launch_id = f"{time_tag}-{config.script_id}"
         if config.output_dir is not None:
