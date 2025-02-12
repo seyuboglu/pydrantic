@@ -63,13 +63,12 @@ python script.py -u foo=10
 
 ## Nested Configs
 
-Configs can contain nested Pydantic models or dictionaries.
+Configs can contain nested configs.
 
 ```python
-from pydrantic import RunConfig
-from pydantic import BaseModel
+from pydrantic import RunConfig, BaseConfig
 
-class InnerConfig(BaseModel):
+class InnerConfig(BaseConfig):
     x: int = 1
     y: int = 2
 
@@ -85,7 +84,7 @@ if __name__ == "__main__":
     main(config)
 ```
 
-You can access nested fields from the command line using dots:
+You can update nested fields from the command line using dots:
 
 ```bash
 python script.py -u inner.x=5
@@ -103,36 +102,21 @@ python script.py --in inner x=5 y=10 in-- --in d a=100 b=101 in--
 Both will set the same variable.
 
 
-## Serializing Configs
 
-To produce a human-readable serialization of your config, you can use the `to_dict()` method. We also provide a few helper functions to save configs to YAML, pickle, or dill files.
+# Dev
 
-```python
-import pydrantic
-
-class MyConfig(pydrantic.Config):
-    def __init__(self):
-        super().__init__()
-        self.x = 5
-        self.y = 10
-
-@pydrantic.main(MyConfig)
-def main(config: MyConfig):
-    as_dict = config.to_dict()
-    print(as_dict)
-
-    pydrantic.save_yaml(as_dict, "conf.yaml")
-    pydrantic.save_pickle(as_dict, "conf.pkl")
-    pydrantic.save_dill(as_dict, "conf.dill")
-
-if __name__ == "__main__":
-    main()
-```
-
-# Running Tests
+## Running Tests
 
 To run the repo's test suite, use:
 
 ```bash
 python -m unittest discover tests
+```
+
+## Releasing 
+```
+python3 -m pip install --upgrade build
+python3 -m build
+python3 -m pip install --upgrade twine
+python3 -m twine upload --repository pypi dist/*   
 ```
