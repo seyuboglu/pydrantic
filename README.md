@@ -170,7 +170,6 @@ python path/to/script.py -p
 We also provide support for creating configs that 
 
 
-## Serializing Configs
 
 We also provide a few helper functions to save configs to YAML, pickle, or dill files.
 For example:
@@ -184,4 +183,21 @@ config = MyConfig.from_yaml("conf.yaml")
 
 if __name__ == "__main__":
     main()
+```
+# Dev
+
+## Running Tests
+
+To run the repo's test suite, use:
+
+```bash
+python -m unittest discover tests
+```
+
+## Releasing 
+```
+python3 -m pip install --upgrade build
+python3 -m build
+python3 -m pip install --upgrade twine
+python3 -m twine upload --repository pypi dist/*   
 ```
