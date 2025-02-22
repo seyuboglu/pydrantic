@@ -2,7 +2,7 @@
 
 ## What is This?
 `pydrantic` is a simple library that makes it easier to use Pydantic models as configs for machine learning experiments. 
-The library provides utilities that Pydantic models with features inspired by other configuration libraries like (*e.g.* [Hydra](https://hydra.cc/)). These include:
+The library augments Pydantic models with features inspired by other configuration libraries like (*e.g.* [Hydra](https://hydra.cc/)). These include:
 
 - **Command-line overrides**: Users can override config fields from the command line.
 - **Serialization**: Users can serialize configs to YAML, pickle, or dill files.
@@ -11,11 +11,21 @@ The library provides utilities that Pydantic models with features inspired by ot
 - **Object instantiation**: Users can instantiate Pydantic models from the command line or from a file.
 
 *Why use Pydantic models as configs?*
+`pydrantic` is a fork of Jordan's awesome `pydra` library. 
+`pydrantic` inherits the same CLI syntax from `pydra`, but uses [Pydantic](https://docs.pydantic.dev/latest/) models for config classes.
+So, in some sense, `pydrantic` is just a more opinionated version of `pydra`. 
+
+The choice of Pydantic models for config classes encourages a strict separation between config and functionality. It also enables a few nice features like safer serialization, built-in type validation, and dependencies between fields in the config.
 
 
 ## Installation
 
 To install the latest release from PyPI:
+```bash
+pip install pydrantic
+```
+
+To install from source:
 ```bash
 git clone https://github.com/seyuboglu/pydrantic.git
 cd pydrantic
@@ -26,113 +36,152 @@ pip install -e .
 # Usage
 
 ## The Basics
+Define the schema for your config in a file called `config.py`.
 
-`pydrantic` is a fork of Jordan's awesome `pydra` library. 
-`pydrantic` inherits the same CLI syntax from `pydra`, but uses [Pydantic](https://docs.pydantic.dev/latest/) models for config classes.
-So, in some sense, `pydrantic` is just a more opinionated version of `pydra`. 
-
-The choice of Pydantic models for config classes encourages a strict separation between config and functionality. It also enables a few nice features like safer serialization, built-in type validation, and dependencies between fields in the config.
+In this example, we will define a `TrainConfig` class that specifies the schema of a configuration for a training run.
+Note that we inherit from `RunConfig`, which is a convenience class that adds a few useful features to the base `BaseConfig` class.
 
 ```python
-import pydrantic
+# path/to/config.py
+from pydrantic import RunConfig
 
-class MyConfig(pydrantic.RunConfig):
+class TrainConfig(RunConfig):
+    
+    # (1) define the fields for your config
+    lr: float = 1e-3
+    epochs: int = 10
+    batch_size: int = 128
 
-    foo: int = 5
-    bar: int = 10
-
+    # (2) define a method that will be called when the config is run
     def run(self):
-        print(f"foo: {self.foo}")
-        print(f"bar: {self.bar}")
-
-if __name__ == "__main__":
-    config = MyConfig()
-    pydrantic.main(config)
+        ...
 ```
 
+Now in separate file, you can define a script that instantiates a config and runs it:
+1. Instantiate the config with the desired values.
+2. Launch the config with `pydrantic.main`. By using `pydrantic.main`, you can override the values of the config fields from the command line.
 
+```python
+# path/to/script.py
+from config import TrainConfig
+
+# (1) instantiate the config
+config = TrainConfig(
+    lr=1e-4,
+    epochs=20,
+    batch_size=256,
+)
+
+if __name__ == "__main__":
+    # (3) run the config
+    pydrantic.main(config)
+```
 
 You can run this script with:
 
 ```bash
-python script.py
+python path/to/script.py
+```
 
-python script.py -u foo=10
+Or override the values of specific fields:
+```bash
+python path/to/script.py lr=1e-5
 ```
 
 
-## Nested Configs
+## Nesting Configs
 
-Configs can contain nested Pydantic models or dictionaries.
+Just like Pydantic models, configs can be nested.
 
 ```python
-from pydrantic import RunConfig
-from pydantic import BaseModel
+# path/to/config.py
+from pydrantic import BaseConfig, RunConfig
 
-class InnerConfig(BaseModel):
-    x: int = 1
-    y: int = 2
+class ModelConfig(BaseConfig):
+    num_layers: int = 1
+    hidden_dim: int = 1024
 
-class MyConfig(RunConfig):
-    inner: InnerConfig = InnerConfig()
+class TrainConfig(RunConfig):
+    model: ModelConfig
+
+    lr: float = 1e-3
+    epochs: int = 10
+    batch_size: int = 128
 
     def run(self):
-        print(f"Inner x: {self.inner.x}")
-        print(f"Inner y: {self.inner.y}")
+        ...
+```
+Now, in a separate script, you can instantiate the config and run it:
+
+```python
+# path/to/script.py
+from config import TrainConfig, ModelConfig
+
+# (1) instantiate the config
+config = TrainConfig(
+    model=ModelConfig(
+        num_layers=10,
+        hidden_dim=1024,
+    ),
+    lr=1e-4,
+    epochs=20,
+    batch_size=256,
+)
 
 if __name__ == "__main__":
-    config = MyConfig()
-    main(config)
+    # (3) run the config
+    pydrantic.main(config)
 ```
 
-You can access nested fields from the command line using dots:
+You can set nested fields from the command line using dots:
 
 ```bash
-python script.py -u inner.x=5
+python script.py model.num_layers=5
 ```
 
-## `--in`
+## Launching Sweeps
+You can sweep over different configurations by creating a list of configs in a script. 
+For example, assuming you have defined a `TrainConfig` class in another file, you can 
+run a sweep over learning rates by creating a file `path/to/script.py` with the following contents:
 
-You can also temporarily scope your assignments to a nested config using the `--in` flag. Use `in--` to end the scoping region. Using the above example:
+```python
+# path/to/script.py
+from ... import TrainConfig
+import numpy as np
 
+configs = []
+for lr in np.logspace(-4, -2, 10):
+   configs.append(
+    TrainConfig(learning_rate=lr)
+   ) 
+
+if __name__ == "__main__":
+    pydrantic.main(configs)
+```
+
+To launch the runs in parallel using Ray, you can run the script with the `-p` flag:
 ```bash
-python script.py --in inner x=5 y=10 in-- --in d a=100 b=101 in--
+python path/to/script.py -p
 ```
 
 
-Both will set the same variable.
+## Object Configs
+
+We also provide support for creating configs that 
 
 
 ## Serializing Configs
 
-To produce a human-readable serialization of your config, you can use the `to_dict()` method. We also provide a few helper functions to save configs to YAML, pickle, or dill files.
+We also provide a few helper functions to save configs to YAML, pickle, or dill files.
+For example:
 
 ```python
-import pydrantic
+config = MyConfig()
 
-class MyConfig(pydrantic.Config):
-    def __init__(self):
-        super().__init__()
-        self.x = 5
-        self.y = 10
+config.to_yaml("conf.yaml")
+config = MyConfig.from_yaml("conf.yaml")
 
-@pydrantic.main(MyConfig)
-def main(config: MyConfig):
-    as_dict = config.to_dict()
-    print(as_dict)
-
-    pydrantic.save_yaml(as_dict, "conf.yaml")
-    pydrantic.save_pickle(as_dict, "conf.pkl")
-    pydrantic.save_dill(as_dict, "conf.dill")
 
 if __name__ == "__main__":
     main()
-```
-
-# Running Tests
-
-To run the repo's test suite, use:
-
-```bash
-python -m unittest discover tests
 ```
