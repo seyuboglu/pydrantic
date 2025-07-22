@@ -195,6 +195,7 @@ python -m unittest discover tests
 ```
 
 ## Releasing 
+First bump the version in `setup.py` and commit the changes.
 ```
 python3 -m pip install --upgrade build
 python3 -m build

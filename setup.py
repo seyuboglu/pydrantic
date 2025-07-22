@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     setup(
         name="pydrantic",
-        version="0.0.2",
+        version="0.0.3",
         packages=["pydrantic"],
         author="Sabri Eyuboglu",
         url="https://github.com/seyuboglu/pydrantic",
