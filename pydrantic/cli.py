@@ -56,16 +56,17 @@ def main(
 ):
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--parallelize", action="store_true", default=False, help="Run configs in parallel")
+    parser.add_argument("--gpus-per-config", type=int, default=1, help="Number of GPUs to use per config")
     parser.add_argument("--log-to-driver", action="store_true", default=False, help="Log to driver")
-    parser.add_argument("--gpus", type=str, default=None, help="Specify GPUs to use")
+    parser.add_argument("--devices", type=str, default=None, help="Specify GPUs to use")
     args, updates = parser.parse_known_args()
 
     if isinstance(configs, RunConfig):
         configs = [configs]
 
-    if args.gpus is not None:
-        print(args.gpus)
-        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
+    if args.devices is not None:
+        print(args.devices)
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.devices
 
     time_tag = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
     for idx, config in enumerate(configs):
@@ -113,7 +114,7 @@ def main(
         # we set the number of gpus required by each remote equal to the number of
         # gpus required by each config
         futures = [
-            ray.remote(num_gpus=1)(execute_config).remote(config) 
+            ray.remote(num_gpus=args.gpus_per_config)(execute_config).remote(config) 
             for config in configs
         ]
         

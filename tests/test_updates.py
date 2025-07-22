@@ -1,5 +1,5 @@
 import pytest
-from pydrantic.config import BaseConfig
+from pydrantic.config import BaseConfig, RunConfig
 from pydrantic.cli import _update_config
 from pydantic import Field
 
@@ -9,10 +9,14 @@ class NestedConfig(BaseConfig):
     nested_param1: float = Field(default=0.1)
     nested_param2: str = Field(default="nested_default")
 
-class SimpleConfig(BaseConfig):
+class SimpleConfig(RunConfig):
     param1: int = Field(default=1)
     param2: str = Field(default="default")
+    param3: str = Field(default="default")
     nested: NestedConfig = Field(default_factory=NestedConfig)
+    
+    def run(self):
+        pass
 
 def test_override_top_level_fields():
     config = SimpleConfig()
@@ -127,3 +131,21 @@ def test_override_variable_with_nested_config_and_nested_keys():
     assert updated_config.nested.nested_param1 == 10.0
     assert updated_config.nested.nested_param2 == "Hello, 10.0!"
     assert updated_config.param2 == "Hello, 10.0!"
+
+
+def test_override_variable_with_nested_config_and_nested_keys():
+    config = SimpleConfig(
+        param1=1,
+        param2=FormatStringVariable("Hello, {param3}!"),
+        param3=FormatStringVariable("Hello, {nested.nested_param2}!"),
+        nested=NestedConfig(
+            nested_param1=0.1, 
+            nested_param2=FormatStringVariable("Hello, {nested_param1}!")
+        )
+    )
+    updates = ["nested.nested_param1=10.0"]
+    updated_config = _update_config(config, updates)
+    assert updated_config.nested.nested_param1 == 10.0
+    assert updated_config.nested.nested_param2 == "Hello, 10.0!"
+    assert updated_config.param3 == "Hello, Hello, 10.0!!"
+    assert updated_config.param2 == "Hello, Hello, Hello, 10.0!!!"

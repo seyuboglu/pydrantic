@@ -8,10 +8,10 @@ from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic import Field, model_validator
 
 from pydrantic.utils import type_from_dict, save_dill, save_pickle, import_object, type_to_dict, unflatten_dict, flatten_dict, load_dill, load_pickle
-from pydrantic.variables import BaseVariable
+from pydrantic.variables import BaseVariable, VariableResolutionError
 
 
-
+MAX_RESOLUTION_DEPTH = 5
 
 class BaseConfig(BaseModel):
     model_config = ConfigDict(
@@ -28,10 +28,22 @@ class BaseConfig(BaseModel):
             return handler(values)
         
         variables = {}
-        for k, v in values.items():
-            if isinstance(v, BaseVariable):
-                values[k] = v.resolve(values)
-                variables[k] = v
+        for _ in range(MAX_RESOLUTION_DEPTH):
+            variables_remaining = False
+            for k, v in values.items():
+                if isinstance(v, BaseVariable):
+                    try:
+                        values[k] = v.resolve(values)
+                    except VariableResolutionError as e:
+                        variables_remaining = True
+                    else:
+                        variables[k] = v
+            if not variables_remaining:
+                break
+        else:
+            raise VariableResolutionError(f"Max resolution depth reached for {values}")
+            
+
         config: BaseConfig = handler(values)
         config._variables = variables
         return config
